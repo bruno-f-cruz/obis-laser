@@ -1,0 +1,70 @@
+[project]
+name = "obis-laser"
+dynamic = ["version"]
+description = "Python client for Coherent OBIS LX/LS lasers (unofficial, not affiliated with Coherent)."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Bruno F. Cruz" }]
+requires-python = ">=3.11"
+dependencies = ["pyserial>=3.5"]
+keywords = ["obis", "laser", "scpi", "serial", "instrument-control"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering",
+    "Topic :: System :: Hardware :: Hardware Drivers",
+    "Typing :: Typed",
+]
+
+[project.urls]
+Repository = "https://github.com/bruno-f-cruz/obis-laser"
+"Bug Tracker" = "https://github.com/bruno-f-cruz/obis-laser/issues"
+Changelog = "https://github.com/bruno-f-cruz/obis-laser/releases"
+
+[project.scripts]
+obis-laser = "obis.cli:main"
+
+[dependency-groups]
+dev = [
+    "codespell>=2.3.0",
+    "pyright>=1.1.390",
+    "pytest>=8.3.5",
+    "pytest-cov>=6.1.1",
+    "ruff>=0.11.0",
+]
+
+[build-system]
+requires = ["setuptools>=77", "setuptools-scm>=8"]
+build-backend = "setuptools.build_meta"
+
+# The version comes from git tags. Release builds set SETUPTOOLS_SCM_PRETEND_VERSION to the
+# release tag (e.g. v0.1.0); 0.0.0 is only used when no version information is available.
+[tool.setuptools_scm]
+fallback_version = "0.0.0"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["obis*"]
+
+[tool.setuptools.package-data]
+obis = ["py.typed"]
+
+[tool.codespell]
+skip = "*.lock,./.venv,./.git,./.ruff_cache,./.pytest_cache,./dist,*.pyc"
+check-filenames = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
+
+[tool.pyright]
+pythonVersion = "3.11"
+include = ["src", "tests"]
+typeCheckingMode = "standard"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
