@@ -21,6 +21,9 @@ DEFAULT_PROBE_TIMEOUT = 0.3
 #: Maximum number of lasers searched for behind a controller.
 MAX_CHANNELS = 8
 
+#: USB vendor ID of Coherent, which identifies OBIS lasers and controllers connected over USB.
+COHERENT_VENDOR_ID = 0x0D4D
+
 
 @dataclass(frozen=True)
 class DiscoveredDevice:
@@ -34,9 +37,20 @@ class DiscoveredDevice:
     serial_number: str
 
 
+def candidate_ports() -> list[str]:
+    """List the serial ports of OBIS lasers and controllers connected over USB.
+
+    Ports are recognized by Coherent's USB vendor ID, without opening them. Devices
+    connected over RS-232, for example through a USB adapter, are not listed: probe
+    them with :func:`discover`.
+    """
+    return sorted(port.device for port in list_ports.comports() if port.vid == COHERENT_VENDOR_ID)
+
+
 def discover(
     ports: Iterable[str] | None = None,
     *,
+    all_ports: bool = False,
     exclude: Iterable[str] = (),
     timeout: float = DEFAULT_PROBE_TIMEOUT,
 ) -> list[DiscoveredDevice]:
@@ -46,18 +60,25 @@ def discover(
     like a Coherent device are then queried for their type, model and serial number.
     Lasers behind a controller (OBIS Remote, LaserBox) are listed with their channel.
 
+    By default, only the ports of Coherent USB devices are probed (see
+    :func:`candidate_ports`), or every serial port if there are none.
+
     Warning:
-        Probing writes to every port in ``ports`` (all serial ports by default), which
-        may disturb other devices. Use ``ports`` or ``exclude`` to limit this.
-        Ports that are already in use are skipped.
+        Probing writes to every port probed, which may disturb other devices. Use
+        ``ports`` or ``exclude`` to limit this. Ports that are already in use are skipped.
 
     Args:
-        ports: Ports to probe. Defaults to every serial port on the computer.
+        ports: Ports to probe. Defaults to the ports of Coherent USB devices, or to
+            every serial port if there are none.
+        all_ports: Probe every serial port, for example to also find devices connected
+            over RS-232 while a Coherent USB device is connected. Ignored if ``ports``
+            is given.
         exclude: Ports never to probe, e.g. ``["COM1", "COM11"]`` (case-insensitive).
         timeout: Time, in seconds, to wait for each reply.
     """
     if ports is None:
-        ports = sorted(port.device for port in list_ports.comports())
+        every_port = sorted(port.device for port in list_ports.comports())
+        ports = every_port if all_ports else (candidate_ports() or every_port)
     excluded = {port.casefold() for port in exclude}
     devices: list[DiscoveredDevice] = []
     for port in ports:

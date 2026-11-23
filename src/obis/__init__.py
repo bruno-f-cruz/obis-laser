@@ -7,7 +7,7 @@ or endorsed by Coherent.
 from . import protocol
 from .aio import AsyncObisConnection, AsyncObisLaser
 from .connection import ObisConnection
-from .discovery import DiscoveredDevice, discover
+from .discovery import DiscoveredDevice, candidate_ports, discover
 from .errors import ObisDeviceError, ObisError, ObisProtocolError, ObisTimeoutError
 from .laser import ObisLaser
 from .models import (
@@ -41,6 +41,7 @@ __all__ = [
     "OperatingMode",
     "StatusFlags",
     "TemperatureLimits",
+    "candidate_ports",
     "discover",
     "protocol",
 ]

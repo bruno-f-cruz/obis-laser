@@ -68,9 +68,14 @@ for device in obis.discover(exclude=["COM1"]):
     print(device.port, device.channel, device.model, device.serial_number)
 ```
 
-`discover()` sends `*IDN?` to every serial port, so it may disturb other serial devices
-(it does not change any setting on them). Pass `ports=[...]` to probe only some ports,
-or `exclude=[...]` to skip ports.
+OBIS lasers and controllers connected over USB are recognized by Coherent's USB vendor ID
+(`0x0D4D`) without opening any port: `obis.candidate_ports()` lists them. `discover()` probes
+these ports, or every serial port if there are none, for example when the laser is connected
+over RS-232 through a USB adapter.
+
+Probing sends `*IDN?` to each port, so it may disturb other serial devices (it does not change
+any setting on them). Pass `ports=[...]` to choose the ports to probe, `all_ports=True` to probe
+every serial port, or `exclude=[...]` to skip ports.
 
 ### Anything else
 
@@ -87,6 +92,7 @@ laser.query("SYST:INF:FVER?")  # -> ["V3.0.5"]
 
 ```sh
 obis-laser list                  # find devices
+obis-laser list --all-ports      # ... probing every serial port, not only Coherent USB ports
 obis-laser list --exclude COM1   # ... without probing COM1
 obis-laser info COM3             # static information
 obis-laser state COM3 --channel 1

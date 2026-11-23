@@ -29,6 +29,7 @@ from obis import (
     ObisLaser,
     OperatingMode,
     StatusFlags,
+    candidate_ports,
     discover,
 )
 
@@ -139,6 +140,17 @@ def test_discover_finds_the_laser() -> None:
     devices = discover([PORT])
     print(devices)
     assert any(device.channel == CHANNEL for device in devices)
+
+
+def test_discover_probes_coherent_usb_ports_by_default() -> None:
+    candidates = candidate_ports()
+    print("Coherent USB ports:", candidates)
+    if PORT.casefold() not in (port.casefold() for port in candidates):
+        pytest.skip(f"{PORT} is not a Coherent USB port (e.g. RS-232 through an adapter)")
+    devices = discover()
+    print(devices)
+    assert all(device.port in candidates for device in devices)
+    assert any(device.port == PORT and device.channel == CHANNEL for device in devices)
 
 
 @requires_emission

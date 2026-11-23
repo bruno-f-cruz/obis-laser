@@ -1,10 +1,19 @@
+from types import SimpleNamespace
+
 import pytest
 from fakes import FakeObisDevice
 
-from obis import DeviceType, discover
+from obis import DeviceType, candidate_ports, discover
 from obis.cli import main
+from obis.discovery import COHERENT_VENDOR_ID
 
 IDN = "Coherent, Inc-OBIS LaserBox-V1.0-20200101"
+PROLIFIC_VENDOR_ID = 0x067B
+
+
+def _port(name: str, vid: int | None = None) -> SimpleNamespace:
+    """A serial port as listed by pyserial."""
+    return SimpleNamespace(device=name, vid=vid)
 
 
 def _controller_with_two_lasers() -> FakeObisDevice:
@@ -61,7 +70,7 @@ def test_cli_excludes_ports(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    ports_found = [type("Port", (), {"device": name})() for name in ("COM1", "COM2")]
+    ports_found = [_port("COM1"), _port("COM2")]
     monkeypatch.setattr("obis.discovery.list_ports.comports", lambda: ports_found)
     assert main(["list", "--exclude", "COM2"]) == 0
     assert "COM1  channel 0" in capsys.readouterr().out
@@ -76,3 +85,47 @@ def test_cli_lists_devices(
     monkeypatch.setattr("obis.discovery.list_ports.comports", lambda: [])
     assert main(["list"]) == 1
     assert "no OBIS device found" in capsys.readouterr().out
+
+
+def test_candidate_ports_are_coherent_usb_ports(monkeypatch: pytest.MonkeyPatch) -> None:
+    listed = [_port("COM12", COHERENT_VENDOR_ID), _port("COM10", PROLIFIC_VENDOR_ID), _port("COM1")]
+    monkeypatch.setattr("obis.discovery.list_ports.comports", lambda: listed)
+    assert candidate_ports() == ["COM12"]
+
+
+def test_discover_probes_only_coherent_usb_ports_by_default(
+    ports: dict[str, FakeObisDevice], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    listed = [_port("COM1", COHERENT_VENDOR_ID), _port("COM2", PROLIFIC_VENDOR_ID)]
+    monkeypatch.setattr("obis.discovery.list_ports.comports", lambda: listed)
+    assert [d.port for d in discover(timeout=0.05)] == ["COM1", "COM1", "COM1"]
+    assert ports["COM2"].written == []
+
+
+def test_discover_probes_every_port_without_coherent_usb_ports(
+    ports: dict[str, FakeObisDevice], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    listed = [_port("COM1", PROLIFIC_VENDOR_ID), _port("COM2")]
+    monkeypatch.setattr("obis.discovery.list_ports.comports", lambda: listed)
+    assert len(discover(timeout=0.05)) == 3
+    assert ports["COM2"].written == ["*IDN?"]
+
+
+def test_discover_can_probe_every_port(
+    ports: dict[str, FakeObisDevice], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    listed = [_port("COM1", PROLIFIC_VENDOR_ID), _port("COM2", COHERENT_VENDOR_ID)]
+    monkeypatch.setattr("obis.discovery.list_ports.comports", lambda: listed)
+    assert len(discover(all_ports=True, timeout=0.05)) == 3
+    assert ports["COM2"].written == ["*IDN?"]
+
+
+def test_cli_can_probe_every_port(
+    ports: dict[str, FakeObisDevice],
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    listed = [_port("COM1", PROLIFIC_VENDOR_ID), _port("COM2", COHERENT_VENDOR_ID)]
+    monkeypatch.setattr("obis.discovery.list_ports.comports", lambda: listed)
+    assert main(["list", "--all-ports"]) == 0
+    assert "COM1  channel 0" in capsys.readouterr().out

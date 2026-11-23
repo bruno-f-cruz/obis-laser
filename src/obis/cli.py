@@ -18,6 +18,11 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     list_command = commands.add_parser("list", help="find OBIS devices by probing serial ports")
     list_command.add_argument(
+        "--all-ports",
+        action="store_true",
+        help="probe every serial port, not only the ports of Coherent USB devices",
+    )
+    list_command.add_argument(
         "--exclude",
         action="append",
         default=[],
@@ -41,7 +46,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         if args.command == "list":
-            return _list(args.exclude)
+            return _list(args.all_ports, args.exclude)
         with ObisLaser.open(args.port, channel=args.channel) as laser:
             if args.command == "info":
                 _print(dataclasses.asdict(laser.get_info()))
@@ -57,8 +62,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     return 0
 
 
-def _list(exclude: list[str]) -> int:
-    devices = discover(exclude=exclude)
+def _list(all_ports: bool, exclude: list[str]) -> int:
+    devices = discover(all_ports=all_ports, exclude=exclude)
     if not devices:
         print("no OBIS device found")
         return 1
