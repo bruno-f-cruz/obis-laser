@@ -164,10 +164,11 @@ def test_emission(laser: ObisLaser) -> None:
         laser.set_emission(True)
         assert laser.get_emission()
 
-        # Emission can be delayed by warm-up and the 5 s CDRH delay.
+        # Emission can be delayed by warm-up and the 5 s CDRH delay. LASER_READY is not waited
+        # for: it is only set within 2% of the setpoint, which low powers may not reach.
         deadline = time.monotonic() + 30
-        while StatusFlags.LASER_READY not in laser.get_status():
-            assert time.monotonic() < deadline, "laser did not become ready within 30 s"
+        while not _is_emitting(laser.get_status()):
+            assert time.monotonic() < deadline, "laser did not start emitting within 30 s"
             time.sleep(0.2)
         time.sleep(1)
 
@@ -179,3 +180,8 @@ def test_emission(laser: ObisLaser) -> None:
         laser.set_power(original_power)
         laser.set_operating_mode(original_mode)
     assert not laser.get_emission()
+
+
+def _is_emitting(status: StatusFlags) -> bool:
+    delayed = StatusFlags.CDRH_DELAY | StatusFlags.LASER_WARM_UP
+    return StatusFlags.LASER_EMISSION in status and not status & delayed
