@@ -16,7 +16,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="obis-laser", description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
 
-    commands.add_parser("list", help="find OBIS devices by probing every serial port")
+    list_command = commands.add_parser("list", help="find OBIS devices by probing serial ports")
+    list_command.add_argument(
+        "--exclude",
+        action="append",
+        default=[],
+        metavar="PORT",
+        help="port not to probe (can be repeated), e.g. --exclude COM1 --exclude COM11",
+    )
 
     def add_laser_command(name: str, help: str) -> argparse.ArgumentParser:
         command = commands.add_parser(name, help=help)
@@ -34,7 +41,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         if args.command == "list":
-            return _list()
+            return _list(args.exclude)
         with ObisLaser.open(args.port, channel=args.channel) as laser:
             if args.command == "info":
                 _print(dataclasses.asdict(laser.get_info()))
@@ -50,8 +57,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     return 0
 
 
-def _list() -> int:
-    devices = discover()
+def _list(exclude: list[str]) -> int:
+    devices = discover(exclude=exclude)
     if not devices:
         print("no OBIS device found")
         return 1

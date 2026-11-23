@@ -64,12 +64,13 @@ async with await AsyncObisLaser.open("COM3") as laser:
 ```python
 import obis
 
-for device in obis.discover():
+for device in obis.discover(exclude=["COM1"]):
     print(device.port, device.channel, device.model, device.serial_number)
 ```
 
-`discover()` sends `*IDN?` to every serial port (or only to the ports you pass), so it
-may disturb other serial devices; it does not change any setting on non-OBIS devices.
+`discover()` sends `*IDN?` to every serial port, so it may disturb other serial devices
+(it does not change any setting on them). Pass `ports=[...]` to probe only some ports,
+or `exclude=[...]` to skip ports.
 
 ### Anything else
 
@@ -86,6 +87,7 @@ laser.query("SYST:INF:FVER?")  # -> ["V3.0.5"]
 
 ```sh
 obis-laser list                  # find devices
+obis-laser list --exclude COM1   # ... without probing COM1
 obis-laser info COM3             # static information
 obis-laser state COM3 --channel 1
 obis-laser power COM3 0.02
@@ -130,21 +132,6 @@ uv run pytest tests/test_hardware.py -v -s
 ```
 
 Block the beam before enabling `OBIS_TEST_EMISSION`.
-
-## Releasing
-
-The package version comes from the release tag (with [setuptools-scm](https://setuptools-scm.readthedocs.io)).
-To publish version `0.1.0`, create a GitHub release with the tag `v0.1.0`. The `obis-laser`
-workflow then runs the tests, builds the distributions with that version, attaches them to
-the release and publishes them to PyPI.
-
-One-time setup:
-
-1. Create a GitHub environment named `pypi` (Settings > Environments).
-2. On PyPI, add a [trusted publisher](https://docs.pypi.org/trusted-publishers/) for the
-   `obis-laser` project: this repository, workflow `obis-laser.yml`, environment `pypi`.
-
-Local builds without a tag get a development version (e.g. `0.0.1.dev0+...`).
 
 ## License
 

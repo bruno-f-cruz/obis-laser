@@ -49,6 +49,25 @@ def test_discover_finds_lasers_behind_a_controller(ports: dict[str, FakeObisDevi
     assert ports["COM2"].written == ["*IDN?"]
 
 
+def test_excluded_ports_are_not_probed(ports: dict[str, FakeObisDevice]) -> None:
+    found = discover(["COM1", "COM2"], exclude=["com1"], timeout=0.05)
+    assert found == []
+    assert ports["COM1"].written == []
+    assert ports["COM2"].written == ["*IDN?"]
+
+
+def test_cli_excludes_ports(
+    ports: dict[str, FakeObisDevice],
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    ports_found = [type("Port", (), {"device": name})() for name in ("COM1", "COM2")]
+    monkeypatch.setattr("obis.discovery.list_ports.comports", lambda: ports_found)
+    assert main(["list", "--exclude", "COM2"]) == 0
+    assert "COM1  channel 0" in capsys.readouterr().out
+    assert ports["COM2"].written == []
+
+
 def test_cli_lists_devices(
     ports: dict[str, FakeObisDevice],
     monkeypatch: pytest.MonkeyPatch,

@@ -35,7 +35,10 @@ class DiscoveredDevice:
 
 
 def discover(
-    ports: Iterable[str] | None = None, *, timeout: float = DEFAULT_PROBE_TIMEOUT
+    ports: Iterable[str] | None = None,
+    *,
+    exclude: Iterable[str] = (),
+    timeout: float = DEFAULT_PROBE_TIMEOUT,
 ) -> list[DiscoveredDevice]:
     """Find OBIS lasers and controllers by probing serial ports.
 
@@ -45,17 +48,21 @@ def discover(
 
     Warning:
         Probing writes to every port in ``ports`` (all serial ports by default), which
-        may disturb other devices. Pass an explicit list of ports to limit this.
+        may disturb other devices. Use ``ports`` or ``exclude`` to limit this.
         Ports that are already in use are skipped.
 
     Args:
         ports: Ports to probe. Defaults to every serial port on the computer.
+        exclude: Ports never to probe, e.g. ``["COM1", "COM11"]`` (case-insensitive).
         timeout: Time, in seconds, to wait for each reply.
     """
     if ports is None:
         ports = sorted(port.device for port in list_ports.comports())
+    excluded = {port.casefold() for port in exclude}
     devices: list[DiscoveredDevice] = []
     for port in ports:
+        if port.casefold() in excluded:
+            continue
         if not _replies_like_obis(port, timeout):
             continue
         try:
