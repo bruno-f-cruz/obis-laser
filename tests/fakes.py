@@ -19,6 +19,8 @@ class FakeObisDevice:
         self.written: list[str] = []
         self.handshaking = True
         self.silent = False
+        self.silent_from: str | None = None
+        """A command from which the device stops replying, e.g. to simulate a controller hanging."""
         self.prompt = False
         self.closed = False
         self._buffer = bytearray()
@@ -29,6 +31,8 @@ class FakeObisDevice:
         assert data.endswith(b"\r"), "commands must be terminated by a carriage return"
         command = data.decode("ascii").removesuffix("\r")
         self.written.append(command)
+        if command == self.silent_from:
+            self.silent = True
         if not self.silent:
             self._respond(command)
         return len(data)

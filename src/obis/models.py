@@ -42,6 +42,8 @@ class DeviceType(StrEnum):
     """OBIS Remote (mini controller)."""
     MASTER = "MASTER"
     """Master controller, e.g. an OBIS LaserBox."""
+    MULTI = "MULTI"
+    """Multi-laser controller, e.g. an OBIS 5-Laser Box."""
     OTHER = "OTHER"
     """Any other device type."""
 
@@ -52,7 +54,7 @@ class DeviceType(StrEnum):
     @property
     def is_controller(self) -> bool:
         """Whether the device is a controller that routes commands to lasers."""
-        return self in (DeviceType.MINI, DeviceType.MASTER)
+        return self in (DeviceType.MINI, DeviceType.MASTER, DeviceType.MULTI)
 
 
 class AnalogImpedance(IntEnum):

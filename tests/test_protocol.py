@@ -1,6 +1,6 @@
 import pytest
 
-from obis import FaultFlags, ObisProtocolError, OperatingMode, StatusFlags, protocol
+from obis import DeviceType, FaultFlags, ObisProtocolError, OperatingMode, StatusFlags, protocol
 
 
 @pytest.mark.parametrize(
@@ -84,3 +84,20 @@ def test_single_line_replies_reject_extra_lines() -> None:
 def test_user_info_is_validated(index: int, text: str) -> None:
     with pytest.raises(ValueError):
         protocol.set_user_info(index, text)
+
+
+@pytest.mark.parametrize(
+    ("reply", "expected", "controller"),
+    [
+        ("DDL", DeviceType.DDL, False),
+        ("OPSL", DeviceType.OPSL, False),
+        ("MINI", DeviceType.MINI, True),
+        ("MASTER", DeviceType.MASTER, True),
+        ("MULTI", DeviceType.MULTI, True),
+        ("GALAXY", DeviceType.OTHER, False),
+    ],
+)
+def test_device_type_is_parsed(reply: str, expected: DeviceType, controller: bool) -> None:
+    device_type = DeviceType(reply)
+    assert device_type is expected
+    assert device_type.is_controller is controller
