@@ -36,9 +36,10 @@ with ObisLaser.open("COM3") as laser:  # "/dev/ttyACM0" on Linux
 Units are SI as used by the device: power in **watts**, current in **amperes**,
 temperatures in **degrees Celsius**.
 
-### Several lasers behind an OBIS Remote or LaserBox
+### Several lasers behind an OBIS Remote, LaserBox or 5-Laser Box
 
-Channel 0 is the controller; lasers are numbered from 1.
+Channel 0 is the controller; lasers are numbered from 1. Discovery lists every laser behind a controller, including
+those after an empty slot.
 
 ```python
 from obis import ObisConnection

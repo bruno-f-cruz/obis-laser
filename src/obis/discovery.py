@@ -11,7 +11,7 @@ from serial.tools import list_ports
 
 from . import protocol
 from .connection import BAUD_RATE, ObisConnection
-from .errors import ObisError
+from .errors import ObisDeviceError, ObisError
 from .models import DeviceType
 
 logger = logging.getLogger(__name__)
@@ -111,10 +111,14 @@ def _describe(connection: ObisConnection, port: str) -> list[DiscoveredDevice]:
     root = _describe_channel(connection, port, 0)
     devices = [root]
     if root.device_type.is_controller:
-        # Lasers behind a controller are numbered from 1; stop at the first missing one.
+        # Lasers behind a controller are numbered from 1. An empty slot replies with an error
+        # (an OBIS 5-Laser Box replies ERR-241), and a laser may follow it, so every slot is
+        # queried; only a slot that does not reply at all ends the search.
         for channel in range(1, MAX_CHANNELS + 1):
             try:
                 devices.append(_describe_channel(connection, port, channel))
+            except ObisDeviceError:
+                continue
             except ObisError:
                 break
     return devices
